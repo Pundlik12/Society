@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Campaign Entry Form</title>
+  <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input, button { margin: 8px 0; padding: 8px; width: 100%; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h2>🌱 Campaign Contribution Form</h2>
+  <form id="entryForm">
+    <input type="text" id="name" placeholder="Name" required />
+    <input type="number" id="amount" placeholder="Amount (₹)" required min="1" />
+    <input type="date" id="date" required />
+    <button type="submit">Submit</button>
+  </form>
+
+  <h3>📊 Contributions</h3>
+  <table id="dataTable">
+    <thead>
+      <tr><th>Name</th><th>Amount</th><th>Date</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    //Firebase config JS SDK v7.20.0 and later, measurementId is optional
+	const firebaseConfig = 
+	{
+	  apiKey: "AIzaSyBf8VMxR1FYQ3LA_RMztVLPF_rIjoOWrAA",
+	  authDomain: "incomeexpensetracker-2b8da.firebaseapp.com",
+	  projectId: "incomeexpensetracker-2b8da",
+	  storageBucket: "incomeexpensetracker-2b8da.firebasestorage.app",
+	  messagingSenderId: "661983647586",
+	  appId: "1:661983647586:web:48cc22a8534a04bc76fe3b",
+	  measurementId: "G-4EVC2EY8VX"
+	};
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ✅ Form submission
+    document.getElementById("entryForm").addEventListener("submit", async (e) => 
+	{
+      e.preventDefault();
+      const name = document.getElementById("name").value.trim();
+      const amount = parseFloat(document.getElementById("amount").value);
+      const date = document.getElementById("date").value;
+
+      if (!name || !amount || !date || amount <= 0) 
+	  {
+        alert("Please fill all fields correctly.");
+        return;
+      }
+
+      await db.collection("contributions").add({ name, amount, date });
+      document.getElementById("entryForm").reset();
+      loadData();
+    });
+
+    // 📥 Load data
+    async function loadData() 
+	{
+      const snapshot = await db.collection("contributions").orderBy("date", "desc").get();
+      const tbody = document.querySelector("#dataTable tbody");
+      tbody.innerHTML = "";
+      snapshot.forEach(doc => {
+        const { name, amount, date } = doc.data();
+        const row = <tr><td>${name}</td><td>₹${amount}</td><td>${date}</td></tr>;
+        tbody.innerHTML += row;
+      });
+    }
+
+    loadData(); // Initial load
+  </script>
+</body>
+</html>
