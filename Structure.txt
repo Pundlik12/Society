@@ -1,0 +1,9 @@
+/finance-app
+│
+├── index.html         → Login screen
+├── signup.html        → Sign-up screen
+├── dashboard.html     → Main dashboard with navigation
+├── income.html        → Income entry form
+├── expenses.html      → Expenses entry form
+├── firebase.js        → Firebase config and shared setup
+└── app.js             → Shared logic (auth, Firestore ops)

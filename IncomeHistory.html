@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Income History</title>
+  <style>
+    .nav-menu {
+		  display: flex;
+		  justify-content: space-between;
+		  align-items: center;
+		  background-color: #333;
+		  padding: 10px 20px;
+		  list-style: none;
+		}
+
+		.nav-menu li a {
+		  color: white;
+		  text-decoration: none;
+		  padding: 8px 12px;
+		  font-weight: bold;
+		}
+
+		.nav-menu li.logout {
+		  margin-left: auto;
+		}
+
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    .container {
+      max-width: 400px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px; 
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+    .Button {
+	    margin: 20px 0;
+      width: 100%;
+      padding: 10px;
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .Button:hover {
+      background: #0056b3;
+    }
+    h2 {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>Welcome to Your Dashboard</h2>
+  <nav>
+    <ul class="nav-menu">
+      <li><a href="Dashboard.html">Home</a></li>
+      <li><a href="Income.html">Incomes</a></li>
+      <li><a href="Expenses.html">Expenses</a></li>
+      <li class="logout"></li>
+      <button id="logoutBtn">Logout</button>
+    </ul>
+  </nav>
+  
+  <div class="container">  
+    <h2>Income History</h2>
+    <input type="text" id="RoomNo" placeholder="Enter Room No">
+    <button id="showBtn" class="Button">Show</button>
+	  <button id="exportBtn" class="Button">Export to CSV</button>
+  </div>
+ 
+  <script type="module">
+    import { auth } from './firebase.js';
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    onAuthStateChanged(auth, user => 
+    {
+      if (!user) return window.location.href = "Index.html";
+
+      document.getElementById("logoutBtn").onclick = async () => 
+      {
+        await signOut(auth);
+        window.location.href = "Index.html";
+      };	
+
+      document.getElementById("showBtn").onclick = async () => 
+      {
+        try 
+        {
+          const RoomNo = document.getElementById("RoomNo").value;
+          
+          if(RoomNo == "")
+          {
+            alert("Please enter RoomNo.");
+          }
+          else
+          {
+            window.location.href = "dashboard.html";
+          }
+        }
+        catch (e) 
+        {
+          alert(e.message);
+        }
+      };
+
+      document.getElementById("exportBtn").onclick = async () => 
+      {
+          try 
+          {
+            const incomeSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "income"));
+            
+            const allData = [
+              incomeSnap.docs.map(doc => ({
+                type: "Income",
+                label: doc.data().source,
+                amount: doc.data().amount,
+                date: new Date(doc.data().date.seconds * 1000)
+              }))
+            ];
+
+            const csv = convertToCSV(allData);
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            
+            a.href = url;
+            a.download = "IncomeHistory.csv";
+            a.click();
+          }
+          catch (e) 
+          {
+            alert(e.message);
+          }
+      };
+	
+      function convertToCSV(data) 
+        {
+          const rows = [["Type", "Label", "Amount", "Date"]];
+          
+          data.forEach(({ type, label, amount, date }) => {
+          rows.push([type, label, amount, date.toISOString()]);
+          });
+          
+          return rows.map(r => r.join(",")).join("\n");
+        };
+    
+    });
+  
+  </script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+Awesome! Let’s add **monthly summaries**, **category/date filters**, and **CSV export** to your Firebase finance dashboard. These features will make your app feel polished and powerful.
+
+---
+
+## 📅 1. Monthly Summary (Income vs Expenses)
+
+### 🔧 HTML (`dashboard.html`)
+Add this section below your chart:
+
+```html
+<h3>Monthly Summary</h3>
+<div id="summary"></div>
+```
+
+### 🧠 JavaScript Logic
+Update your `<script type="module">` block:
+
+```js
+function groupByMonth(docs) {
+  const summary = {};
+  docs.forEach(doc => {
+    const data = doc.data();
+    const date = new Date(data.date.seconds * 1000); // Firestore timestamp
+    const key = `${date.getFullYear()}-${date.getMonth() + 1}`;
+    summary[key] = (summary[key] || 0) + data.amount;
+  });
+  return summary;
+}
+
+function renderSummary(incomeByMonth, expenseByMonth) {
+  const container = document.getElementById("summary");
+  container.innerHTML = "<ul>";
+  const months = new Set([...Object.keys(incomeByMonth), ...Object.keys(expenseByMonth)]);
+  [...months].sort().forEach(month => {
+    const income = incomeByMonth[month] || 0;
+    const expense = expenseByMonth[month] || 0;
+    container.innerHTML += `<li><strong>${month}</strong>: Income ₹${income}, Expenses ₹${expense}</li>`;
+  });
+  container.innerHTML += "</ul>";
+}
+```
+
+Then call these after fetching income/expense data:
+
+```js
+const incomeByMonth = groupByMonth(incomeSnap.docs);
+const expenseByMonth = groupByMonth(expenseSnap.docs);
+renderSummary(incomeByMonth, expenseByMonth);
+```
+
+---
+
+## 🗂️ 2. Filter by Category or Date
+
+### 🔧 HTML
+Add dropdowns or inputs:
+
+```html
+<h3>Filter</h3>
+<select id="filterType">
+  <option value="income">Income</option>
+  <option value="expenses">Expenses</option>
+</select>
+<input type="month" id="filterMonth">
+<button id="applyFilter">Apply</button>
+<div id="filterResults"></div>
+```
+
+### 🧠 JavaScript
+Add this logic:
+
+```js
+document.getElementById("applyFilter").onclick = async () => {
+  const type = document.getElementById("filterType").value;
+  const month = document.getElementById("filterMonth").value;
+  const [year, mon] = month.split("-").map(Number);
+
+  const snap = await getDocs(collection(db, "users", auth.currentUser.uid, type));
+  const results = snap.docs.filter(doc => {
+    const d = new Date(doc.data().date.seconds * 1000);
+    return d.getFullYear() === year && d.getMonth() + 1 === mon;
+  });
+
+  const container = document.getElementById("filterResults");
+  container.innerHTML = results.map(doc => {
+    const data = doc.data();
+    return `<p>${data.source || data.category}: ₹${data.amount}</p>`;
+  }).join("");
+};
+```
+
+---
+
+## 📤 3. Export to CSV
+
+### 🔧 HTML
+```html
+<button id="exportCSV">Export CSV</button>
+```
+
+### 🧠 JavaScript
+```js
+function convertToCSV(data) {
+  const rows = [["Type", "Label", "Amount", "Date"]];
+  data.forEach(({ type, label, amount, date }) => {
+    rows.push([type, label, amount, date.toISOString()]);
+  });
+  return rows.map(r => r.join(",")).join("\n");
+}
+
+document.getElementById("exportCSV").onclick = async () => {
+  const incomeSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "income"));
+  const expenseSnap = await getDocs(collection(db, "users", auth.currentUser.uid, "expenses"));
+
+  const allData = [
+    ...incomeSnap.docs.map(doc => ({
+      type: "Income",
+      label: doc.data().source,
+      amount: doc.data().amount,
+      date: new Date(doc.data().date.seconds * 1000)
+    })),
+    ...expenseSnap.docs.map(doc => ({
+      type: "Expense",
+      label: doc.data().category,
+      amount: doc.data().amount,
+      date: new Date(doc.data().date.seconds * 1000)
+    }))
+  ];
+
+  const csv = convertToCSV(allData);
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "finance-data.csv";
+  a.click();
+};
+```

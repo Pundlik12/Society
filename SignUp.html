@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sign Up</title>
+    <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    .container {
+      max-width: 400px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px; 
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+    button {
+	  margin: 20px 0;
+      width: 100%;
+      padding: 10px;
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    h2 {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Sign Up</h2>
+    <input type="text" id="FirstName" placeholder="Enter your First Name">
+    <input type="text" id="MiddleName" placeholder="Enter your Middle Name">
+    <input type="text" id="LastName" placeholder="Enter your Last Name">
+    <input type="email" id="email" placeholder="Enter your email ID">
+    <input type="password" id="password" placeholder="Enter your password">
+    <button id="signupBtn">Sign Up</button>
+  </div>
+  <script type="module">
+    import { auth, db } from './firebase.js';
+    import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { setDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    document.getElementById("signupBtn").onclick = async () => 
+	  {
+      try 
+      {
+        const firstName = document.getElementById("FirstName").value;
+        const middleName = document.getElementById("MiddleName").value;
+        const lastName = document.getElementById("LastName").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+		
+        if(firstName == "")
+        {
+          alert("Please enter First Name.");
+        }
+        else if(lastName == "")
+        {
+          alert("Please enter Last Name.");
+        }
+        else if(email == "")
+        {
+          alert("Please enter Email.");
+        }
+        else if(password == "")
+        {
+          alert("Please enter Password.");
+        }
+        else
+        {
+          var strMsg = "";
+          const userCred = await createUserWithEmailAndPassword(auth, email, password).catch(err => strMsg = err.message);
+          await setDoc(doc(db, "users", userCred.user.uid), { firstName, middleName, lastName, email, createdAt: new Date() });
+          
+          if(strMsg == "")
+          {
+            window.location.href = "Index.html";
+          }
+          else
+          {
+            alert("Error:- " + strMsg)
+          }
+        }
+      }
+      catch (e) 
+      {
+        alert(e.message);
+      }
+    };
+  </script>
+</body>
+</html>

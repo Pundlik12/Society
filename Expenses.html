@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Expense</title>
+  <style>
+    .nav-menu {
+		  display: flex;
+		  justify-content: space-between;
+		  align-items: center;
+		  background-color: #333;
+		  padding: 10px 20px;
+		  list-style: none;
+		}
+
+		.nav-menu li a {
+		  color: white;
+		  text-decoration: none;
+		  padding: 8px 12px;
+		  font-weight: bold;
+		}
+
+		.nav-menu li.logout {
+		  margin-left: auto;
+		}
+    
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    .container {
+      max-width: 400px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px; 
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input,select {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+    .Button {
+	    margin: 20px 0;
+      width: 100%;
+      padding: 10px;
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .Button:hover {
+      background: #0056b3;
+    }
+    h2 {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h2>Welcome to Your Dashboard</h2>
+  <nav>
+    <ul class="nav-menu">
+      <li><a href="Dashboard.html">Home</a></li>
+      <li><a href="Income.html">Incomes</a></li>
+      <li><a href="Expenses.html">Expenses</a></li>
+      <li class="logout"></li>
+      <button id="logoutBtn">Logout</button>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <h2>Society Expenses</h2>
+    <input type="date" id="TrnDate" placeholder="Select Trn date">
+    <select id="PaymentMode">
+      <option value="Select" default>Select</option>
+      <option value="GPay">GPay</option>
+      <option value="PhonePay">PhonePay</option>
+      <option value="BankTransfer">Bank Transfer</option>
+      <option value="Cash">Cash</option>
+    </select>
+    <input type="text" id="ReferenceNumber" placeholder="Reference Number">
+    <input type="number" id="Amount" placeholder="Amount">
+    <input type="text" id="Comments" placeholder="Enter Comments">
+    <button id="saveExpense" class="Button">Save</button>
+    <button id="ShowHistory" class="Button">Show History</button>
+  </div>
+
+  <script type="module">
+    import { auth, db } from './firebase.js';
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { addDoc, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    function isValidDate(dateStr)
+    {
+      const regex = /^\d{2}-[A-Za-z]{3}-\d{4}$/;
+
+      if (!regex.test(dateStr)) return false;
+
+      const [day, monthStr, year] = dateStr.split("-");
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthIndex = monthNames.indexOf(monthStr);
+      
+      if (monthIndex === -1) return false;
+
+      const date = new Date(year, monthIndex, day);
+      return date.getDate() == day && date.getMonth() == monthIndex && date.getFullYear() == year;
+    }
+
+    // document.getElementById("TrnDate").addEventListener("blur", function () 
+    // {
+    //   const input = this.value;
+      
+    //   if (!isValidDate(input)) 
+    //   {
+    //     alert("Please enter a valid date in dd-MMM-yyyy format.");
+    //   }
+    // });
+
+    onAuthStateChanged(auth, user => 
+    {
+      if (!user) return window.location.href = "Index.html";
+
+      const today = new Date();
+      const formattedDate = today.toISOString().split('T')[0];
+
+      const day = String(today.getDate()).padStart(2, '0');
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const month = monthNames[today.getMonth()];
+      const year = today.getFullYear();
+
+      const formattedDate1 = `${day}-${month}-${year}`;
+
+      document.getElementById("TrnDate").value = formattedDate;
+      
+      document.getElementById("logoutBtn").onclick = async () => 
+      {
+        await signOut(auth);
+        window.location.href = "Index.html";
+      };	
+
+      document.getElementById("ShowHistory").onclick = async () =>
+      {
+        window.location.href = "ExpenseHistory.html";	
+      }
+	
+      document.getElementById("saveExpense").onclick = async () => 
+      {
+        const TrnDate = document.getElementById("TrnDate").value;
+        const PaymentMode = document.getElementById("PaymentMode").value;
+        const ReferenceNumber = document.getElementById("ReferenceNumber").value;
+        const AmountReceived = document.getElementById("Amount").value;
+        const Amount = parseFloat(AmountReceived);
+        const Comments = document.getElementById("Comments").value;
+		
+        if(TrnDate == "")
+        {
+          alert("Select Trn Date.")
+        }
+        else if(PaymentMode == "Select" || PaymentMode == "")
+        {
+          alert("Select Payment Mode.")
+        }
+        else if(Amount == "")
+        {
+          alert("Enter the Amount.")
+        }
+        else
+        {
+          await addDoc(collection(db, "users", user.uid, "Expenses"), {
+            TrnDate,
+            PaymentMode,
+            ReferenceNumber,
+            Amount,
+            Comments,
+            date: new Date()
+          });
+          document.getElementById("TrnDate").value = formattedDate;
+          alert("Expense saved!");
+        }
+      };
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Dashboard</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			padding: 20px;
+			background: #f4f4f4;
+		}
+
+		.nav-menu {
+		  display: flex;
+		  justify-content: space-between;
+		  align-items: center;
+		  background-color: #333;
+		  padding: 10px 20px;
+		  list-style: none;
+		}
+
+		.nav-menu li a {
+		  color: white;
+		  text-decoration: none;
+		  padding: 8px 12px;
+		  font-weight: bold;
+		}
+
+		.nav-menu li.logout {
+		  margin-left: auto;
+		}
+	</style>
+</head>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<body>
+  <h2>Welcome to Your Dashboard</h2>
+  <nav>
+	<ul class="nav-menu">
+		<li><a href="Dashboard.html">Home</a></li>
+		<li><a href="Income.html">Incomes</a></li>
+		<li><a href="Expenses.html">Expenses</a></li>
+		<li class="logout"></li>
+		<button id="logoutBtn">Logout</button>
+	</ul>
+  </nav>
+
+  <canvas id="financeChart" width="400" height="200"></canvas>
+  <script type="module">
+	import { auth, db } from './firebase.js';
+	import { signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+	import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    document.getElementById("logoutBtn").onclick = async () => 
+	{
+      await signOut(auth);
+      window.location.href = "Index.html";
+    };	
+
+	onAuthStateChanged(auth, async user => 
+	{
+	  if (!user) return window.location.href = "Index.html";
+
+	  const incomeSnap = await getDocs(collection(db, "users", user.uid, "Income"));
+	  const expenseSnap = await getDocs(collection(db, "users", user.uid, "Expenses"));
+
+	  let totalIncome = 0, totalExpenses = 0;
+	  
+	  incomeSnap.forEach(doc => totalIncome += doc.data().amount);
+	  expenseSnap.forEach(doc => totalExpenses += doc.data().amount);
+
+	  new Chart(document.getElementById('financeChart'), 
+	  {
+		type: 'bar',
+		data: {
+		  labels: ['Income', 'Expenses'],
+		  datasets: [{
+			label: 'Amount',
+			data: [totalIncome, totalExpenses],
+			backgroundColor: ['#4caf50', '#f44336']
+		  }]
+		}
+	  });
+	});
+  </script>
+</body>
+</html>
